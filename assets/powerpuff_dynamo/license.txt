@@ -1,0 +1,8 @@
+Model Information:
+* title:	Powerpuff Dynamo
+* source:	https://sketchfab.com/3d-models/powerpuff-dynamo-0c6fe78eaedb4f19bae2e8c1f5ca4475
+* author:	EJBS1991 (https://sketchfab.com/romubar)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works
