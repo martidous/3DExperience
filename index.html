@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D AR/VR Project</title>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="libs/p5.js"></script>
+  <script src="libs/p5.sound.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/IDMNYU/p5.js-speech@0.0.3/lib/p5.speech.js"></script>
+
+  <link rel="stylesheet" href="styles/style.css">
+</head>
+
+<body>
+  <!-- Loading/Instructions Overlay -->
+  <div id="overlay" class="overlay">
+    <div class="overlay-content">
+      <!-- Loading State -->
+      <div id="loadingScreen" class="screen active">
+        <div class="spinner"></div>
+        <h1>Loading Solarpunk Village...</h1>
+        <p id="loadingStatus">Initializing assets...</p>
+      </div>
+
+      <!-- Instructions State -->
+      <div id="instructionsScreen" class="screen">
+        <h1>Welcome to the Solarpunk Village</h1>
+        <div class="instructions-grid">
+          <div class="instruction-section">
+            <h3>Movement</h3>
+            <p>W / &#8593; - Move Forward</p>
+            <p>A / &#8592; - Move Left</p>
+            <p>S / &#8595; - Move Backward</p>
+            <p>D / &#8594; - Move Right</p>
+          </div>
+          <div class="instruction-section">
+            <h3>Actions</h3>
+            <p>E - Pick up object</p>
+            <p>Q - Drop object</p>
+            <p>P - Play/pause music (near Powerpuff)</p>
+            <p>V - Play/pause hologram video</p>
+            <p>M - Toggle mic/music source</p>
+            <p>R - Toggle voice commands</p>
+            <p>H - View help anytime</p>
+            <p>C - View credits</p>
+          </div>
+          <div class="instruction-section">
+            <h3>Voice Commands</h3>
+            <p>Say: "Forward" - Keep moving forward</p>
+            <p>Say: "Back" - Keep moving backward</p>
+            <p>Say: "Left" - Keep moving left</p>
+            <p>Say: "Right" - Keep moving right</p>
+            <p>Say: "Stop" - Stop moving</p>
+          </div>
+          <div class="instruction-section">
+            <h3>Goal</h3>
+            <p>Collect all 20 energy cores</p>
+            <p>Explore the solarpunk village</p>
+            <p>Interact with Willie hologram</p>
+            <p>Enjoy the music visualizations</p>
+          </div>
+        </div>
+        <button id="startButton" class="start-button">Start Experience</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Position Overlay (Top Right) -->
+  <div id="positionOverlay" class="position-overlay">
+    <h4>Position</h4>
+    <div class="coord">
+      <span class="coord-label">X:</span>
+      <span class="coord-value" id="posX">0.00</span>
+    </div>
+    <div class="coord">
+      <span class="coord-label">Y:</span>
+      <span class="coord-value" id="posY">0.00</span>
+    </div>
+    <div class="coord">
+      <span class="coord-label">Z:</span>
+      <span class="coord-value" id="posZ">0.00</span>
+    </div>
+    <div class="coord">
+      <span class="coord-label">Rot:</span>
+      <span class="coord-value" id="posRot">0°</span>
+    </div>
+  </div>
+
+  <!-- Proximity Message (Bottom Center) -->
+  <div id="proximityMessage" class="proximity-message">
+    <p id="messageText"></p>
+  </div>
+
+  <!-- Voice Command Indicator (Bottom Right) -->
+  <div id="voiceIndicator" class="voice-indicator" style="display: none;">
+    <div class="voice-icon">🎤</div>
+    <p id="voiceStatus">Listening...</p>
+    <p id="lastCommand" class="voice-command"></p>
+  </div>
+
+  <!-- Completion Overlay (Hidden by default) -->
+  <div id="completionOverlay" class="completion-overlay">
+    <div class="completion-overlay-content">
+      <div class="completion-icon">⚡</div>
+      <h1 class="completion-title">Mission Complete!</h1>
+      <p class="completion-message">Thank you for collecting all 20 energy cores!</p>
+      <p class="completion-submessage">The Solarpunk Village is now fully powered.</p>
+      <p class="completion-explore">Continue exploring the village at your leisure.</p>
+      <p class="completion-credits-hint">Press C to view credits</p>
+    </div>
+  </div>
+
+  <!-- Help Overlay (Hidden by default) -->
+  <div id="helpOverlay" class="help-overlay" style="display: none;">
+    <div class="help-content">
+      <h1 class="help-title">Keyboard Controls</h1>
+      <h2 class="help-subtitle">Press H to close help</h2>
+
+      <div class="help-grid">
+        <div class="help-section">
+          <h3>Movement</h3>
+          <div class="help-item"><span class="help-key">W / ↑</span> Move Forward</div>
+          <div class="help-item"><span class="help-key">A / ←</span> Move Left</div>
+          <div class="help-item"><span class="help-key">S / ↓</span> Move Backward</div>
+          <div class="help-item"><span class="help-key">D / →</span> Move Right</div>
+        </div>
+
+        <div class="help-section">
+          <h3>Actions</h3>
+          <div class="help-item"><span class="help-key">E</span> Pick up object</div>
+          <div class="help-item"><span class="help-key">Q</span> Drop object</div>
+          <div class="help-item"><span class="help-key">P</span> Play/pause music</div>
+          <div class="help-item"><span class="help-key">V</span> Play/pause video</div>
+          <div class="help-item"><span class="help-key">M</span> Toggle mic/music</div>
+        </div>
+
+        <div class="help-section">
+          <h3>Voice Commands</h3>
+          <div class="help-item"><span class="help-key">R</span> Toggle voice commands</div>
+          <div class="help-item"><span class="help-voice">Say "Forward"</span> Move forward</div>
+          <div class="help-item"><span class="help-voice">Say "Back"</span> Move backward</div>
+          <div class="help-item"><span class="help-voice">Say "Left"</span> Move left</div>
+          <div class="help-item"><span class="help-voice">Say "Right"</span> Move right</div>
+          <div class="help-item"><span class="help-voice">Say "Stop"</span> Stop moving</div>
+        </div>
+
+        <div class="help-section">
+          <h3>UI & Debug</h3>
+          <div class="help-item"><span class="help-key">H</span> Toggle this help</div>
+          <div class="help-item"><span class="help-key">C</span> View credits</div>
+          <div class="help-item"><span class="help-key">L</span> Log worker position</div>
+          <div class="help-item"><span class="help-key">I</span> Toggle debug info</div>
+        </div>
+      </div>
+
+      <div class="help-footer">
+        <p>Goal: Collect all 20 energy cores to power the village!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credits Overlay (Hidden by default) -->
+  <div id="creditsOverlay" class="credits-overlay" style="display: none;">
+    <div class="credits-content">
+      <h1 class="credits-title">Solarpunk Village VR</h1>
+      <h2 class="credits-subtitle">Credits & Attributions</h2>
+
+      <div class="credits-section">
+        <h3>3D Models & Assets</h3>
+        <p>"Solarpunk Village" by LowPolyBoy</p>
+        <p class="credits-link">https://sketchfab.com/3d-models/solarpunk-village-60d34cf693084564848e64eb8eeae0b8</p>
+
+        <p>"Retail Worker" by J-Toastie</p>
+        <p class="credits-license">Licensed under CC-BY 3.0 via Poly Pizza</p>
+
+        <p>"Elvis Presley dancing (animated)" by Jungle Jim</p>
+        <p class="credits-link">https://skfb.ly/pCAV7</p>
+        <p class="credits-license">Licensed under Creative Commons Attribution 4.0</p>
+
+        <p>"Wooden art frame - Stańczyk (1862)" by Pedro Belthori</p>
+
+        <p>"Hologram projector with hologram" by t.flores</p>
+        <p class="credits-link">
+          https://sketchfab.com/3d-models/hologram-projector-with-hologram-ca0a3bc92a3d4a3f9b0fa19cbc73b420</p>
+
+        <p>"Neon sign saxophone" from Fab.com</p>
+        <p class="credits-link">https://www.fab.com/listings/49430b90-6da4-4597-8805-d203534ebfd9</p>
+
+        <p>"VR Gallery House (baked)" by Elin</p>
+        <p class="credits-link">https://skfb.ly/6WXMx</p>
+        <p class="credits-license">Licensed under Creative Commons Attribution 4.0</p>
+
+        <p>"Cartoon City Packs" by Arham Abdullah</p>
+        <p class="credits-link">https://skfb.ly/p8uWR</p>
+        <p class="credits-license">Licensed under Creative Commons Attribution 4.0</p>
+
+        <p>"Energy Tank" by jameslucino117</p>
+        <p class="credits-link">https://skfb.ly/oNEVT</p>
+        <p class="credits-license">Licensed under Creative Commons Attribution 4.0</p>
+
+        <p>"Crystal" by iPoly3D via Poly Pizza</p>
+        <p class="credits-link">https://poly.pizza/m/dY99VgAUtS</p>
+      </div>
+
+      <div class="credits-section">
+        <h3>Sound Effects</h3>
+        <p>Pickup Sound - Pixabay / freesound_community</p>
+        <p>Drop Sound - Sumaga Samaranayaka from Pixabay</p>
+      </div>
+
+      <div class="credits-section">
+        <h3>Video Assets</h3>
+        <p>Scanlines overlay by u_rrc9sha8eq from Pixabay</p>
+      </div>
+
+      <div class="credits-section">
+        <h3>Technologies</h3>
+        <p>A-Frame WebVR Framework</p>
+        <p>p5.js & p5.sound.js</p>
+        <p>p5.speech.js for voice commands</p>
+        <p>THREE.js</p>
+      </div>
+
+      <div class="credits-footer">
+        <p>Press C to close credits</p>
+        <p>Thank you for exploring the Solarpunk Village!</p>
+      </div>
+    </div>
+  </div>
+
+  <a-scene>
+
+    <!-- PRELOAD ASSETS-->
+    <a-assets>
+      <a-asset-item id="sceneModel" src="assets/model.glb"></a-asset-item>
+      <a-asset-item id="retailWorker" src="assets/Retail_Worker.glb"></a-asset-item>
+      <a-asset-item id="powerpuff" src="assets/powerpuff_dynamo/scene.gltf"></a-asset-item>
+      <a-asset-item id="woodframe" src="assets/wooden_art_frame_-_stanczyk_1862.glb"></a-asset-item>
+      <a-asset-item id="picframe" src="assets/picture_frame.glb"></a-asset-item>
+      <a-asset-item id="holoEmitter" src="assets/hologram_projector_with_hologram.glb"></a-asset-item>
+      <a-asset-item id="crystalModel" src="assets/Crystal.glb"></a-asset-item>
+      <a-asset-item id="elvis" src="assets/elvis_presley_dancing_animated.glb"></a-asset-item>
+      <a-asset-item id="neonSax" src="assets/eon_sign_saxophone.glb"></a-asset-item>
+
+      <!-- Hologram assets -->
+      <video id="holoVideo" src="assets/Steamboat_Cut.webm" loop crossorigin="anonymous"></video>
+      <img id="scanlines" src="assets/scanlines.png" crossorigin="anonymous">
+
+    </a-assets>
+    <a-sky color="#76c2ff"></a-sky>
+
+    <!-- Camera. 
+     X=1.80, Y=1.00, Z=1.70 
+     -->
+    <a-entity camera="far: 1000; fov: 80" look-controls position="1 3.2 2"></a-entity>
+
+    <a-entity id="villageScene" gltf-model="#sceneModel" position="0 1 -2" rotation="0 0 0" scale="1 1 1">
+
+    </a-entity>
+    <!--  position="-2 1 21"
+          position="1.8 1 1.7
+      -->
+    <a-entity id="worker" gltf-model="#retailWorker" position="-1.7 1 25" rotation="0 180 0" scale="0.5 0.5 0.5"
+      animation-mixer>
+    </a-entity>
+
+    <!-- Powerpuff Dancing Model -->
+    <a-entity id="powerpuffModel" gltf-model="#powerpuff" position="3 1 1" rotation="0 -90 0" scale="0.05 0.05 0.05"
+      animation-mixer>
+    </a-entity>
+
+    <!-- Elvis Dancing Model -->
+    <a-entity id="elvisModel" gltf-model="#elvis" position="-3 1 4" rotation="0 90 0" scale="0.8 0.8 0.8"
+      animation-mixer>
+    </a-entity>
+    <!-- Neon Saxophone Sign above Elvis -->
+  <a-entity id="neonSaxophone" gltf-model="#neonSax" position="-2 2.9 5" rotation="0 90 0" scale="1 1 1">
+</a-entity>
+    <!-- Willie Hologram Station -->
+    <a-entity id="willieStation" position="2 0 19">
+      <!-- Hologram projector base -->
+      <a-entity gltf-model="#holoEmitter" scale="0.8 0.8 0.8" position="0 0 0" rotation="0 180 0">
+      </a-entity>
+
+      <!-- Willie hologram screen -->
+      <a-plane id="willieScreen" position="0 2.5 0" rotation="0 0 0" width="3" height="3"
+        material="transparent: true; opacity: 0.9; side: double" look-at="[camera]">
+      </a-plane>
+
+      <!-- Speech bubble - HIDDEN BY DEFAULT -->
+      <a-entity id="willieSpeechBubble" position="0 4 0" visible="false">
+        <a-plane width="5.5" height="1.2" color="#000000" opacity="0.8" position="0 0 0.01">
+        </a-plane>
+        <a-text value="Welcome! Collect 20 energy cores to power our village." align="center" color="#00FFFF" width="6"
+          position="0 0 0.02">
+        </a-text>
+      </a-entity>
+    </a-entity>
+
+    <!-- Hologram Emitter (on ground) -->
+    <a-entity id="holoEmitterModel" gltf-model="#holoEmitter" position="-11 1 20" rotation="0 0 0" scale="1 1 1">
+    </a-entity>
+
+    <!-- Hologram Video Display  parent Entity -->
+    <a-entity id="holo" position="-11 3 20">
+
+      <!-- Glow backdrop  -->
+      <a-circle radius="2.2" position="0 0 -0.1" color="#00FFFF"
+        material="emissive: #00FFFF; emissiveIntensity: 0.8; opacity: 0.3; transparent: true; shader: flat">
+      </a-circle>
+
+      <!-- Video plane -->
+      <a-plane src="#holoVideo" width="3" height="1.7" position="0 0 0" material="shader: flat; transparent: true">
+      </a-plane>
+
+      <!-- Scanline overlay -->
+      <a-image src="#scanlines" scale="3.2 1.8 1" position="0 0 0.05" opacity="0.3">
+      </a-image>
+
+      <!-- Hologram rings -->
+      <a-ring radius-inner="1.6" radius-outer="1.7" position="0 0 -0.15" color="#00FFFF"
+        material="emissive: #00FFFF; emissiveIntensity: 1; opacity: 0.4; transparent: true; shader: flat"
+        animation="property: scale; from: 1 1 1; to: 1.1 1.1 1.1; dir: alternate; loop: true; dur: 2000; easing: easeInOutSine">
+      </a-ring>
+
+      <a-ring radius-inner="2" radius-outer="2.05" position="0 0 -0.2" color="#00FFFF"
+        material="emissive: #00FFFF; emissiveIntensity: 0.8; opacity: 0.3; transparent: true; shader: flat">
+      </a-ring>
+
+      <a-ring radius-inner="2.4" radius-outer="2.42" position="0 0 -0.25" color="#00FFFF"
+        material="emissive: #00FFFF; emissiveIntensity: 0.6; opacity: 0.2; transparent: true; shader: flat"
+        animation="property: scale; from: 1 1 1; to: 1.05 1.05 1.05; dir: alternate; loop: true; dur: 3000; easing: easeInOutSine">
+      </a-ring>
+
+      <!-- Hologram Label -->
+      <a-text value="Steamboat Willie (1928)" align="center" color="#FFFFFF" width="4" look-at="[camera]"
+        position="0 1.2 0">
+      </a-text>
+    </a-entity>
+
+    <!-- FFT Audio Visualization -->
+    <!-- Bass-reactive sphere hovering around Powerpuff
+    <a-sphere id="bassSphere" position="3 1.8 1" radius="0.5" color="#00FFFF"
+      material="emissive: #00FFFF; emissiveIntensity: 2.5; opacity: 0.5; transparent: true" visible="false">
+    </a-sphere> -->
+
+    <!-- Waveform visualization plane  -->
+    <!--Position: X=0.40, Y=1.00, Z=2.25-->
+    <a-plane id="waveformPlane" position="7 4 -2.28" rotation="0 -60 0" width="3" height="3"
+      material="shader: flat; transparent: true; opacity: 1" visible="false">
+    </a-plane>
+    <!-- Waveform Label -->
+    <a-text value="Audio Waveform" align="center" color="#FFFFFF" width="4" look-at="[camera]" position="7 5.7 -2.28"
+      visible="false">
+    </a-text>
+
+    <!-- P5 Canvas Screen -->
+    <a-plane id="screen" position="4.9  3.0 9.8" rotation="0 -90 0" width="2" height="2"
+      material="shader: flat; transparent: false">
+    </a-plane>
+    <!-- Parametric Curves Label -->
+    <a-text value="Parametric Curves" align="center" color="#FFFFFF" width="3" look-at="[camera]"
+      position="4.9 4.2 9.8">
+    </a-text>
+    <a-entity id="orbitStation" position="-10 3 -9" rotation="0 10 0">
+      <!-- Frame border (move to back first) -->
+      <a-box position="0 0 -0.1" width="4.4" height="4.4" depth="0.1" color="#333333" metalness="0.8" roughness="0.2">
+      </a-box>
+
+      <!-- Back panel (in front of frame box) -->
+      <a-plane position="0 0 -0.05" width="4" height="4" color="#000000"></a-plane>
+
+      <!-- Main canvas (in front of back panel) -->
+      <a-plane id="orbitCanvas" position="0 0 0" width="4" height="4" material="shader: flat; transparent: false">
+      </a-plane>
+
+      <!-- Corner decorations (in front of everything) -->
+      <a-sphere position="2.2 2.2 0.02" radius="0.1" color="#FFD700"></a-sphere>
+      <a-sphere position="-2.2 2.2 0.02" radius="0.1" color="#FFD700"></a-sphere>
+      <a-sphere position="2.2 -2.2 0.02" radius="0.1" color="#FFD700"></a-sphere>
+      <a-sphere position="-2.2 -2.2 0.02" radius="0.1" color="#FFD700"></a-sphere>
+
+      <!-- Label -->
+      <a-text value="Orbital Motion" align="center" color="#FFFFFF" width="5" look-at="[camera]" position="0 2.3 0">
+      </a-text>
+    </a-entity>
+    <!-- Sunflower Pattern Animation -3.70 Y: 1.00 Z:-20.65 Rot: -->
+    <!-- <a-plane id="sunflowerPattern" position="-3.90 1.3 -23.10" rotation="0 0 0" width="4" height="2"
+      material="shader: flat; transparent: false">
+    </a-plane> -->
+    <!-- Sunflower Label -->
+    <!-- <a-text value="Golden Ratio Spiral" align="center" color="#FFFFFF" width="5" look-at="[camera]"
+      position="-3.90 2.5 -23.10">
+    </a-text> -->
+    <!-- Egypt/Desert Canvas with Futuristic Frame -->
+    <a-entity id="egyptFrame" position="-3.90 3.1 -23.10" rotation="0 0 0">
+      <!-- Canvas -->
+      <a-plane id="egyptCanvas" position="0 0 0" width="6" height="3" material="shader: flat; transparent: false">
+      </a-plane>
+
+      <!-- OUTER FRAME - Thick gold border -->
+      <!-- Top bar -->
+      <a-box position="0 1.7 -0.06" width="6.6" height="0.3" depth="0.15" color="#B8860B" metalness="0.9"
+        roughness="0.2"></a-box>
+      <!-- Bottom bar -->
+      <a-box position="0 -1.7 -0.06" width="6.6" height="0.3" depth="0.15" color="#B8860B" metalness="0.9"
+        roughness="0.2"></a-box>
+      <!-- Left bar -->
+      <a-box position="-3.3 0 -0.06" width="0.3" height="3.6" depth="0.15" color="#B8860B" metalness="0.9"
+        roughness="0.2"></a-box>
+      <!-- Right bar -->
+      <a-box position="3.3 0 -0.06" width="0.3" height="3.6" depth="0.15" color="#B8860B" metalness="0.9"
+        roughness="0.2"></a-box>
+
+      <!-- INNER FRAME - Glowing cyan accent -->
+      <!-- Top bar -->
+      <a-box position="0 1.55 -0.05" width="6.2" height="0.1" depth="0.12" color="#00FFFF" metalness="0.5"
+        roughness="0.3" material="emissive: #00FFFF; emissiveIntensity: 0.5"></a-box>
+      <!-- Bottom bar -->
+      <a-box position="0 -1.55 -0.05" width="6.2" height="0.1" depth="0.12" color="#00FFFF" metalness="0.5"
+        roughness="0.3" material="emissive: #00FFFF; emissiveIntensity: 0.5"></a-box>
+      <!-- Left bar -->
+      <a-box position="-3.05 0 -0.05" width="0.1" height="3.2" depth="0.12" color="#00FFFF" metalness="0.5"
+        roughness="0.3" material="emissive: #00FFFF; emissiveIntensity: 0.5"></a-box>
+      <!-- Right bar -->
+      <a-box position="3.05 0 -0.05" width="0.1" height="3.2" depth="0.12" color="#00FFFF" metalness="0.5"
+        roughness="0.3" material="emissive: #00FFFF; emissiveIntensity: 0.5"></a-box>
+
+      <!-- CORNER ACCENTS - Small decorative spheres -->
+      <a-sphere position="-3.3 1.7 -0.04" radius="0.15" color="#FFD700" metalness="1.0" roughness="0.1"></a-sphere>
+      <a-sphere position="3.3 1.7 -0.04" radius="0.15" color="#FFD700" metalness="1.0" roughness="0.1"></a-sphere>
+      <a-sphere position="-3.3 -1.7 -0.04" radius="0.15" color="#FFD700" metalness="1.0" roughness="0.1"></a-sphere>
+      <a-sphere position="3.3 -1.7 -0.04" radius="0.15" color="#FFD700" metalness="1.0" roughness="0.1"></a-sphere>
+
+      <!-- Label -->
+      <a-text value="Egypt" align="center" color="#FFFFFF" width="5" look-at="[camera]" position="0 1.95 0">
+      </a-text>
+    </a-entity>
+    <!-- Mountain Lava Smoke Animation with Picture Frame -->
+    <a-entity id="mountainFrame" position="-8 2.5 9" rotation="0 -160 0">
+      <!-- Picture Frame Model -->
+      <a-entity gltf-model="#picframe" position="0 0 -0.05" scale="2 2 2"></a-entity>
+
+      <!-- Mountain Canvas inside frame -->
+      <a-plane id="mountainPattern" position="0 0 0" width="3.6" height="2"
+        material="shader: flat; transparent: false; side: double">
+      </a-plane>
+
+      <!-- Mountain Label -->
+      <a-text value="Volcanic Eruption" align="center" color="#FFFFFF" width="4.6" look-at="[camera]"
+        position="0 1.3 0">
+      </a-text>
+    </a-entity>
+
+    <!-- Lighting - Dimmed ambient with localized bright zones -->
+    <!-- Lighting - Dimmed ambient with localized bright zones -->
+    <a-light type="ambient" color="#FFFFFF" intensity="0.4"></a-light>
+    <a-light type="directional" color="#FFFFFF" intensity="0.5" position="1 4 5"></a-light>
+
+    <!-- Point lights for bright zones -->
+    <a-light type="point" intensity="1.8" distance="12" position="2 3 19" color="#FFE4B5"></a-light>
+    <!-- Willie Station -->
+    <a-light type="point" intensity="1.5" distance="10" position="3 3 1" color="#FFB6C1"></a-light>
+    <!-- Powerpuff Stage -->
+    <a-light type="point" intensity="1.2" distance="8" position="-11 4 20" color="#B0E0E6"></a-light>
+    <!-- Hologram Plaza -->
+    <a-light type="point" intensity="1.0" distance="8" position="0 2 0" color="#FFF8DC"></a-light>
+    <a-light type="point" intensity="1.0" distance="8" position="-3 3 2" color="#FFF8DC"></a-light>
+    <!-- Central Plaza -->
+
+    <!-- Elvis Spotlight (warm stage light) -->
+    <a-light type="point" intensity="2.0" distance="10" position="-3 4 4" color="#FFD700"></a-light>
+    <!-- Elvis position is -3 1 4 -->
+
+    <!-- Willie Hologram Light (cyan glow) -->
+    <a-light type="point" intensity="1.8" distance="12" position="-11 4 20" color="#00FFFF"></a-light>
+    <!-- Willie hologram position is -11 3 20 -->
+  </a-scene>
+  <script src="utils/constants.js"></script>
+  <script src="utils/CollisionDetection.js"></script>
+  <script src="utils/DebugHelpers.js"></script>
+  <script src="components/ColorPalette.js"></script>
+  <script src="components/ScoreManager.js"></script>
+  <script src="components/KeyManager.js"></script>
+  <script src="entities/Shape3D.js"></script>
+  <script src="entities/PickupObject.js"></script>
+  <script src="entities/SoundEffects.js"></script>
+  <script src="entities/WilliHologram.js"></script>
+  <script src="entities/AudioVisualizer3D.js"></script>
+  <script src="components/SceneManager.js"></script>
+  <script src="components/PickupManager.js"></script>
+  <script src="p5items/particle.js"></script>
+  <script src="p5items/MotionParticles.js"></script>
+  <script src="p5items/mathart.js"></script>
+  <script src="utils/AudioManager.js"></script>
+  <script src="components/VoiceCommandManager.js"></script>
+
+  <script src="sketch.js"></script>
+</body>
+
+</html>
